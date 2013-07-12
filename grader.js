@@ -26,6 +26,7 @@ var program = require('commander');
 var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+var rest = require("restler");
 
 var assertFileExists = function(infile) {
     var instr = infile.toString();
@@ -45,15 +46,33 @@ var loadChecks = function(checksfile) {
 };
 
 var checkHtmlFile = function(htmlfile, checksfile) {
-    $ = cheerioHtmlFile(htmlfile);
+    results(checksfile, cheerioHtmlFile(htmlfile));
+};
+
+//function to read html file from URL
+var checkHtmlFromUrl = function(url, checksfile){
+    rest.get(url).on('complete', function(data){
+	if (data instanceof Error) {
+            console.log(url + " -> not a valid URL\nError: " + data.message);
+            process.exit(1);
+        }else{	    
+	    results(checksfile, cheerio.load(data));
+	}
+    });
+};
+
+//function to check html file 
+var results = function(checksfile, cheerioHtml){
+    $ = cheerioHtml;
     var checks = loadChecks(checksfile).sort();
     var out = {};
     for(var ii in checks) {
         var present = $(checks[ii]).length > 0;
         out[checks[ii]] = present;
     }
-    return out;
-};
+    var outJson = JSON.stringify(out, null, 4);
+    console.log(outJson);    
+}; 
 
 var clone = function(fn) {
     // Workaround for commander.js issue.
@@ -64,11 +83,11 @@ var clone = function(fn) {
 if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
-        .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+        .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists))
+	.option('-U, --url <url>', 'URL to index.html')
         .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+    if(program.file){checkHtmlFile(program.file, program.checks);}
+    if(program.url){checkHtmlFromUrl(program.url, program.checks);}
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
