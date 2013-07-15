@@ -70,8 +70,8 @@ var results = function(checksfile, cheerioHtml){
         var present = $(checks[ii]).length > 0;
         out[checks[ii]] = present;
     }
-    var outJson = JSON.stringify(out, null, 4);
-    console.log(outJson);    
+   // var outJson = JSON.stringify(out, null, 4);    
+    console.log(JSON.stringify(out, null, 4));    
 }; 
 
 var clone = function(fn) {
